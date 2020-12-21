@@ -5,7 +5,8 @@ from abc import abstractmethod
 from typing import Dict, Tuple, List, Set, TypeVar, Iterator, Generic, Optional, Iterable, Union
 
 from mypyc.ir.ops import (
-    Value, ControlOp,
+    Value, ControlOp, Op,
+    Register,
     BasicBlock, OpVisitor, Assign, LoadInt, LoadErrorValue, RegisterOp, Goto, Branch, Return, Call,
     Environment, Box, Unbox, Cast, Op, Unreachable, TupleGet, TupleSet, GetAttr, SetAttr,
     LoadStatic, InitStatic, MethodCall, RaiseStandardError, CallC, LoadGlobal,
@@ -525,3 +526,68 @@ def run_analysis(blocks: List[BasicBlock],
         op_after, op_before = op_before, op_after
 
     return AnalysisResult(op_before, op_after)
+
+#
+# Integer Range Analysis
+#
+
+
+# Need to use float for infinity support
+Interval = Tuple[float, float]
+
+# Records ranges for all integer registers at a fixed program point
+LocalAbstractState = Dict[Register, Interval]
+
+# Combines all LocalAbstractStates at end of each BasicBlock
+AbstractState = Dict[BasicBlock, LocalAbstractState]
+
+
+def meetLocalAbstractStates(s1: LocalAbstractState,
+                            s2: LocalAbstractState) -> LocalAbstractState:
+    pass
+
+
+def transform(s: LocalAbstractState,
+              op: Op) -> LocalAbstractState:
+    pass
+
+
+def analyze_integer_ranges(blocks: List[BasicBlock],
+                           cfg: CFG,
+                           initial_defined: Set[Value]) -> LocalAbstractState:
+
+    allTop: LocalAbstractState = dict.fromkeys(initial_defined, (float("-inf"), float("inf")))
+
+    S: AbstractState = dict.fromKeys(blocks, allTop)
+
+    W: Set[BasicBlock] = set(blocks)
+
+    while len(W) > 0:
+        b = W.pop()
+
+        # Combine local state with predecessor input states
+        Sb: LocalAbstractState = S[b]
+        for pred in cfg.pred[b]:
+            Sb = meetLocalAbstractStates(Sb, S[pred])
+
+        # Remember to check for changes after execution
+        Sb_before: LocalAbstractState = Sb
+
+        # Abstractly execute b over Sb
+        for op in b.ops:
+            Sb = transform(Sb, op)
+
+        if Sb != Sb_before:
+
+            # Update abstract overall state
+            S[b] = Sb
+
+            # Need to re-execute all successors
+            W = W | set(cfg.succ[b])
+
+    # Combine all exit states into single result state
+    R = allTop
+    for exit in cfg.exits:
+        R = meetLocalAbstractStates(R, S[exit])
+
+    return R

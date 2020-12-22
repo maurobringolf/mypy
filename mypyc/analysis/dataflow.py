@@ -550,6 +550,10 @@ def allTop(registers: List[Register]) -> LocalAbstractState:
 AbstractState = Dict[int, LocalAbstractState]
 
 
+def addIntervals(i1: Interval, i2: Interval) -> Interval:
+    return (i1[0] + i2[0], i1[1] + i2[1])
+
+
 def meetLocalAbstractStates(s1: LocalAbstractState,
                             s2: LocalAbstractState) -> LocalAbstractState:
     sNew = {}
@@ -574,6 +578,13 @@ def aEval(s: LocalAbstractState,
           e: Value) -> Interval:
     if isinstance(e, LoadInt):
         return (e.value, e.value)
+    if isinstance(e, Register):
+        return s[e]
+    if isinstance(e, CallC):
+        if e.function_name == 'CPyTagged_Add':
+            l = aEval(s, e.args[0])
+            r = aEval(s, e.args[1])
+            return addIntervals(l, r)
     return top
 
 

@@ -693,3 +693,21 @@ L3:
 2                    x                    (4, 4)
 3                    b                    (-inf, inf)
 3                    x                    (2, 4)
+
+[case testAdd_IntegerRanges]
+def f(b: bool) -> int:
+    x = 1
+    y = x + 3
+    return x
+[out]
+def f(b):
+    b :: bool
+    x, r0, y :: int
+L0:
+    x = 2
+    r0 = CPyTagged_Add(x, 6)
+    y = r0
+    return x
+0                    b                    (-inf, inf)
+0                    x                    (2, 2)
+0                    y                    (8, 8)

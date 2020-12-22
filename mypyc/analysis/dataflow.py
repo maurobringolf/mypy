@@ -553,6 +553,9 @@ AbstractState = Dict[int, LocalAbstractState]
 def addIntervals(i1: Interval, i2: Interval) -> Interval:
     return (i1[0] + i2[0], i1[1] + i2[1])
 
+def mulIntervals(i1: Interval, i2: Interval) -> Interval:
+    return (min(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]), max(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]))
+
 
 def meetLocalAbstractStates(s1: LocalAbstractState,
                             s2: LocalAbstractState) -> LocalAbstractState:
@@ -585,6 +588,10 @@ def aEval(s: LocalAbstractState,
             l = aEval(s, e.args[0])
             r = aEval(s, e.args[1])
             return addIntervals(l, r)
+        if e.function_name == 'CPyTagged_Multiply':
+            l = aEval(s, e.args[0])
+            r = aEval(s, e.args[1])
+            return mulIntervals(l, r)
     return top
 
 

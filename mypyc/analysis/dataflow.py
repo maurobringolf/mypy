@@ -1,6 +1,7 @@
 """Data-flow analyses."""
 
 from abc import abstractmethod
+import functools
 
 from typing import Dict, Tuple, List, Set, TypeVar, Iterator, Generic, Optional, Iterable, Union
 
@@ -538,56 +539,82 @@ Interval = Tuple[float, float]
 # Records ranges for all integer registers at a fixed program point
 LocalAbstractState = Dict[Register, Interval]
 
-# Combines all LocalAbstractStates at end of each BasicBlock
-AbstractState = Dict[BasicBlock, LocalAbstractState]
+top = (float("-inf"), float("inf"))
+
+
+def allTop(registers: List[Register]) -> LocalAbstractState:
+    return dict.fromkeys(registers, top)
+
+
+# Combines all LocalAbstractStates at end of each BasicBlock (by label)
+AbstractState = Dict[int, LocalAbstractState]
 
 
 def meetLocalAbstractStates(s1: LocalAbstractState,
                             s2: LocalAbstractState) -> LocalAbstractState:
-    pass
+    sNew = {}
+
+    regs = list(s1.keys()) + list(s2.keys())
+
+    for reg in regs:
+        if reg in s1.keys() and reg not in s2.keys():
+            sNew[reg] = s1[reg]
+        elif reg in s2.keys() and reg not in s1.keys():
+            sNew[reg] = s2[reg]
+        else:
+            # in both, comppute the meet
+            (lo1, hi1) = s1[reg]
+            (lo2, hi2) = s2[reg]
+            sNew[reg] = (min(lo1, lo2), max(hi1, hi2))
+
+    return sNew
 
 
-def transform(s: LocalAbstractState,
-              op: Op) -> LocalAbstractState:
-    pass
+def aEval(s: LocalAbstractState,
+          e: Value) -> Interval:
+    if isinstance(e, LoadInt):
+        return (e.value, e.value)
+    return top
+
+
+def aExec(s: LocalAbstractState,
+          op: Op) -> LocalAbstractState:
+    sNew = s
+    if isinstance(op, Assign):
+        sNew[op.dest] = aEval(s, op.src)
+    return s
 
 
 def analyze_integer_ranges(blocks: List[BasicBlock],
                            cfg: CFG,
-                           initial_defined: Set[Value]) -> LocalAbstractState:
+                           regs: Set[Value]) -> LocalAbstractState:
 
-    allTop: LocalAbstractState = dict.fromkeys(initial_defined, (float("-inf"), float("inf")))
-
-    S: AbstractState = dict.fromKeys(blocks, allTop)
+    S: AbstractState = dict.fromkeys(map(lambda b: b.label, blocks), allTop(regs))
 
     W: Set[BasicBlock] = set(blocks)
+
+    # TODO: Sound widening to stop non-termination
 
     while len(W) > 0:
         b = W.pop()
 
         # Combine local state with predecessor input states
-        Sb: LocalAbstractState = S[b]
-        for pred in cfg.pred[b]:
-            Sb = meetLocalAbstractStates(Sb, S[pred])
+        Sb: LocalAbstractState = functools.reduce(meetLocalAbstractStates, [S[pred.label] for pred in cfg.pred[b]], S[b.label])
 
         # Remember to check for changes after execution
         Sb_before: LocalAbstractState = Sb
 
         # Abstractly execute b over Sb
         for op in b.ops:
-            Sb = transform(Sb, op)
+            Sb = aExec(Sb, op)
 
         if Sb != Sb_before:
 
             # Update abstract overall state
-            S[b] = Sb
+            S[b.label] = Sb
 
             # Need to re-execute all successors
             W = W | set(cfg.succ[b])
 
     # Combine all exit states into single result state
-    R = allTop
-    for exit in cfg.exits:
-        R = meetLocalAbstractStates(R, S[exit])
-
-    return R
+    return S

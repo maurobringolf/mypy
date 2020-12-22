@@ -599,10 +599,8 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
         b = W.pop()
 
         # Combine all predecessor input states
-        Sb: LocalAbstractState = functools.reduce(meetLocalAbstractStates, [S[pred.label] for pred in cfg.pred[b]], allTop(regs))
-
-        # Remember to check for changes after execution
-        Sb_before: LocalAbstractState = Sb
+        Sb: LocalAbstractState = functools.reduce(meetLocalAbstractStates, [S[pred.label]
+            for pred in cfg.pred[b]], allTop(regs))
 
         # Abstractly execute b over Sb
         for op in b.ops:

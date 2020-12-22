@@ -666,3 +666,30 @@ L11:
 (11, 0)  {}                      {r9}
 (11, 1)  {r9}                    {}
 
+[case testSimple_IntegerRanges]
+def f(b: bool) -> int:
+    if b:
+        x = 1
+    else:
+        x = 2
+    return x
+[out]
+def f(b):
+    b :: bool
+    x :: int
+L0:
+    if b goto L1 else goto L2 :: bool
+L1:
+    x = 2
+    goto L3
+L2:
+    x = 4
+L3:
+    return x
+0                    b                    (-inf, inf)
+1                    b                    (-inf, inf)
+1                    x                    (2, 2)
+2                    b                    (-inf, inf)
+2                    x                    (4, 4)
+3                    b                    (-inf, inf)
+3                    x                    (2, 4)

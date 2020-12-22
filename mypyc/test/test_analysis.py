@@ -61,6 +61,17 @@ class TestAnalysis(MypycDataSuite):
                     elif name.endswith('_BorrowedArgument'):
                         # Forward, must
                         analysis_result = dataflow.analyze_borrowed_arguments(fn.blocks, cfg, args)
+                    elif name.endswith('_IntegerRanges'):
+                        analysis_result = dataflow.analyze_integer_ranges(fn.blocks, cfg, args)
+                        # TODO: this is hacking because this analysis has a different result format
+                        # it must skip the print part below and do its own
+                        for lab in sorted(analysis_result.keys()):
+                            for (reg, regname) in sorted(map(lambda r: (r, r.name),
+                            analysis_result[lab].keys()), key=lambda x: x[1]):
+                                actual.append('%-20s %-20s %s' %
+                                (lab, regname, analysis_result[lab][reg]))
+
+                        continue
                     else:
                         assert False, 'No recognized _AnalysisName suffix in test case'
 

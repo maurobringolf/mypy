@@ -562,7 +562,7 @@ def meetLocalAbstractStates(s1: LocalAbstractState,
         elif reg in s2.keys() and reg not in s1.keys():
             sNew[reg] = s2[reg]
         else:
-            # in both, comppute the meet
+            # in both, compute the meet
             (lo1, hi1) = s1[reg]
             (lo2, hi2) = s2[reg]
             sNew[reg] = (min(lo1, lo2), max(hi1, hi2))
@@ -582,7 +582,7 @@ def aExec(s: LocalAbstractState,
     sNew = s
     if isinstance(op, Assign):
         sNew[op.dest] = aEval(s, op.src)
-    return s
+    return sNew
 
 
 def analyze_integer_ranges(blocks: List[BasicBlock],
@@ -598,8 +598,8 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
     while len(W) > 0:
         b = W.pop()
 
-        # Combine local state with predecessor input states
-        Sb: LocalAbstractState = functools.reduce(meetLocalAbstractStates, [S[pred.label] for pred in cfg.pred[b]], S[b.label])
+        # Combine all predecessor input states
+        Sb: LocalAbstractState = functools.reduce(meetLocalAbstractStates, [S[pred.label] for pred in cfg.pred[b]], allTop(regs))
 
         # Remember to check for changes after execution
         Sb_before: LocalAbstractState = Sb
@@ -608,7 +608,7 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
         for op in b.ops:
             Sb = aExec(Sb, op)
 
-        if Sb != Sb_before:
+        if Sb != S[b.label]:
 
             # Update abstract overall state
             S[b.label] = Sb

@@ -11,7 +11,8 @@ from mypyc.ir.ops import (
     BasicBlock, OpVisitor, Assign, LoadInt, LoadErrorValue, RegisterOp, Goto, Branch, Return, Call,
     Environment, Box, Unbox, Cast, Op, Unreachable, TupleGet, TupleSet, GetAttr, SetAttr,
     LoadStatic, InitStatic, MethodCall, RaiseStandardError, CallC, LoadGlobal,
-    Truncate, BinaryIntOp, LoadMem, GetElementPtr, LoadAddress, ComparisonOp, SetMem
+    Truncate, BinaryIntOp, LoadMem, GetElementPtr, LoadAddress, ComparisonOp, SetMem,
+    int_rprimitive, short_int_rprimitive,
 )
 
 
@@ -580,6 +581,8 @@ def meetLocalAbstractStates(s1: LocalAbstractState,
 def aEval(s: LocalAbstractState,
           e: Value) -> Interval:
     if isinstance(e, LoadInt):
+        if e.type in (int_rprimitive, short_int_rprimitive):
+            return (e.value >> 1, e.value >> 1)
         return (e.value, e.value)
     if isinstance(e, Register):
         return s[e]

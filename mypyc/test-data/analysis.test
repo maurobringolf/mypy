@@ -688,11 +688,11 @@ L3:
     return x
 0                    b                    (-inf, inf)
 1                    b                    (-inf, inf)
-1                    x                    (2, 2)
+1                    x                    (1, 1)
 2                    b                    (-inf, inf)
-2                    x                    (4, 4)
+2                    x                    (2, 2)
 3                    b                    (-inf, inf)
-3                    x                    (2, 4)
+3                    x                    (1, 2)
 
 [case testAdd_IntegerRanges]
 def f(b: bool) -> int:
@@ -709,8 +709,8 @@ L0:
     y = r0
     return x
 0                    b                    (-inf, inf)
-0                    x                    (2, 2)
-0                    y                    (8, 8)
+0                    x                    (1, 1)
+0                    y                    (4, 4)
 
 [case testMul_IntegerRanges]
 def f(b: bool) -> int:
@@ -727,5 +727,5 @@ L0:
     y = r0
     return x
 0                    b                    (-inf, inf)
-0                    x                    (2, 2)
-0                    y                    (12, 12)
+0                    x                    (1, 1)
+0                    y                    (3, 3)

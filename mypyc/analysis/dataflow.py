@@ -579,7 +579,7 @@ def joinLocalAbstractStates(s1: LocalAbstractState,
 
     return sNew
 
-
+"""
 def aEval(s: LocalAbstractState,
           e: Value) -> Interval:
     if isinstance(e, LoadInt):
@@ -598,14 +598,27 @@ def aEval(s: LocalAbstractState,
             r = aEval(s, e.args[1])
             return mulIntervals(l, r)
     return top
+"""
 
 
 def aExec(s: LocalAbstractState,
           op: Op) -> LocalAbstractState:
-    sNew = s
+    if isinstance(op, LoadInt):
+        if op.type in (int_rprimitive, short_int_rprimitive):
+            s[op] = (op.value >> 1, op.value >> 1)
+        else:
+            s[op] = (op.value, op.value)
     if isinstance(op, Assign):
-        sNew[op.dest] = aEval(s, op.src)
-    return sNew
+        s[op.dest] = s[op.src] #aEval(s, op.src)
+    if isinstance(op, CallC):
+        if op.function_name == 'CPyTagged_Add':
+            l = s[op.args[0]]
+            r = s[op.args[1]]
+            s[op] = addIntervals(l, r)
+        if op.function_name == 'CPyTagged_Multiply':
+            l = s[op.args[0]]
+            r = s[op.args[1]]
+            s[op] = mulIntervals(l, r)
 
 
 def analyze_integer_ranges(blocks: List[BasicBlock],
@@ -637,5 +650,4 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
             # Need to re-execute all successors
             W = W | set(cfg.succ[b])
 
-    # Combine all exit states into single result state
     return S

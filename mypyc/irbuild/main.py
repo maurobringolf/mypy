@@ -41,6 +41,7 @@ from mypyc.irbuild.builder import IRBuilder
 from mypyc.irbuild.visitor import IRBuilderVisitor
 from mypyc.irbuild.mapper import Mapper
 
+from mypyc.transform.optints import optimize_integer_types
 
 # The stubs for callable contextmanagers are busted so cast it to the
 # right type...
@@ -87,6 +88,10 @@ def build_ir(modules: List[MypyFile],
         )
         result[module.fullname] = module_ir
         class_irs.extend(builder.classes)
+
+        # Optimize integer types
+        for fn in module_ir.functions:
+            optimize_integer_types(fn)
 
     # Compute vtables.
     for cir in class_irs:

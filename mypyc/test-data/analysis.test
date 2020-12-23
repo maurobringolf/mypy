@@ -676,7 +676,7 @@ def f(b: bool) -> int:
 [out]
 def f(b):
     b :: bool
-    x :: int
+    x :: int32
 L0:
     if b goto L1 else goto L2 :: bool
 L1:
@@ -702,10 +702,10 @@ def f(b: bool) -> int:
 [out]
 def f(b):
     b :: bool
-    x, r0, y :: int
+    x, r0, y :: int32
 L0:
     x = 2
-    r0 = CPyTagged_Add(x, 6)
+    r0 = x + 6
     y = r0
     return x
 0                    b                    (-inf, inf)
@@ -720,10 +720,10 @@ def f(b: bool) -> int:
 [out]
 def f(b):
     b :: bool
-    x, r0, y :: int
+    x, r0, y :: int32
 L0:
     x = 2
-    r0 = CPyTagged_Multiply(x, 6)
+    r0 = x * 6
     y = r0
     return x
 0                    b                    (-inf, inf)

@@ -222,10 +222,6 @@ def compile_scc_to_ir(
     for module in modules.values():
         for fn in module.functions:
             insert_ref_count_opcodes(fn)
-    # Optimize integer types
-    for module in modules.values():
-        for fn in module.functions:
-            optimize_integer_types(fn)
 
     return modules
 

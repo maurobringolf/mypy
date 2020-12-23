@@ -79,3 +79,14 @@ L14:
 L15:
 L16:
     return 12
+
+[case testIntOpt]
+def f(x: int) -> int:
+	x = 1
+	return x
+[out]
+def f(x):
+    x :: int32
+L0:
+    x = 2
+    return x

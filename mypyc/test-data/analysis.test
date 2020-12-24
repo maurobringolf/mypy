@@ -729,3 +729,21 @@ L0:
 0                    b                    (-inf, inf)
 0                    x                    (1, 1)
 0                    y                    (3, 3)
+
+[case testNeg_IntegerRanges]
+def f(b: bool) -> int:
+    x = 1
+    y = -x
+    return x
+[out]
+def f(b):
+    b :: bool
+    x, r0, y :: int
+L0:
+    x = 2
+    r0 = CPyTagged_Negate(x)
+    y = r0
+    return x
+0                    b                    (-inf, inf)
+0                    x                    (1, 1)
+0                    y                    (-1, -1)

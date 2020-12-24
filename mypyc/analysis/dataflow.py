@@ -559,6 +559,9 @@ def mulIntervals(i1: Interval, i2: Interval) -> Interval:
     return (min(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]),
             max(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]))
 
+def negateInterval(i1: Interval) -> Interval:
+    return (-i1[1], -i1[0])
+
 
 def joinLocalAbstractStates(s1: LocalAbstractState,
                             s2: LocalAbstractState) -> LocalAbstractState:
@@ -597,6 +600,9 @@ def aEval(s: LocalAbstractState,
             l = aEval(s, e.args[0])
             r = aEval(s, e.args[1])
             return mulIntervals(l, r)
+        if e.function_name == 'CPyTagged_Negate':
+            l = aEval(s, e.args[0])
+            return negateInterval(l)
     return top
 
 

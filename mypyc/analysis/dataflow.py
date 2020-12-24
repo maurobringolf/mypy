@@ -554,6 +554,8 @@ AbstractState = Dict[int, LocalAbstractState]
 def addIntervals(i1: Interval, i2: Interval) -> Interval:
     return (i1[0] + i2[0], i1[1] + i2[1])
 
+def subIntervals(i1: Interval, i2: Interval) -> Interval:
+    return addIntervals(i1, negateInterval(i2))
 
 def mulIntervals(i1: Interval, i2: Interval) -> Interval:
     return (min(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]),
@@ -563,7 +565,7 @@ def negateInterval(i1: Interval) -> Interval:
     return (-i1[1], -i1[0])
 
 
-def joinLocalAbstractStates(s1: LocalAbstractState,
+def meetLocalAbstractStates(s1: LocalAbstractState,
                             s2: LocalAbstractState) -> LocalAbstractState:
     sNew = {}
 
@@ -575,7 +577,7 @@ def joinLocalAbstractStates(s1: LocalAbstractState,
         elif reg in s2.keys() and reg not in s1.keys():
             sNew[reg] = s2[reg]
         else:
-            # in both, compute the join
+            # in both, compute the meet
             (lo1, hi1) = s1[reg]
             (lo2, hi2) = s2[reg]
             sNew[reg] = (min(lo1, lo2), max(hi1, hi2))
@@ -603,6 +605,10 @@ def aEval(s: LocalAbstractState,
         if e.function_name == 'CPyTagged_Negate':
             l = aEval(s, e.args[0])
             return negateInterval(l)
+        if e.function_name == 'CPyTagged_Subtract':
+            l = aEval(s, e.args[0])
+            r = aEval(s, e.args[1])
+            return subIntervals(l, r)
     return top
 
 
@@ -628,7 +634,7 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
         b = W.pop()
 
         # Combine all predecessor input states
-        Sb: LocalAbstractState = functools.reduce(joinLocalAbstractStates, [S[pred.label]
+        Sb: LocalAbstractState = functools.reduce(meetLocalAbstractStates, [S[pred.label]
             for pred in cfg.pred[b]], allTop(regs))
 
         # Abstractly execute b over Sb

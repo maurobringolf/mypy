@@ -592,9 +592,9 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
                            cfg: CFG,
                            regs: Set[Value]) -> LocalAbstractState:
 
-    S: AbstractState = dict.fromkeys(map(lambda b: b.label, blocks), allTop(regs))
+    S = dict.fromkeys(map(lambda b: b.label, blocks), allTop(regs))
 
-    W: Set[BasicBlock] = set(blocks)
+    W = set(blocks)
 
     # TODO: Sound widening to stop non-termination
 
@@ -603,7 +603,7 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
         b = W.pop()
 
         # Combine all predecessor input states
-        Sb: LocalAbstractState = functools.reduce(joinLocalAbstractStates, [S[pred.label]
+        Sb = functools.reduce(joinLocalAbstractStates, [S[pred.label]
             for pred in cfg.pred[b]], allTop(regs))
 
         # Abstractly execute b over Sb

@@ -554,6 +554,8 @@ AbstractState = Dict[int, LocalAbstractState]
 def addIntervals(i1: Interval, i2: Interval) -> Interval:
     return (i1[0] + i2[0], i1[1] + i2[1])
 
+def subIntervals(i1: Interval, i2: Interval) -> Interval:
+    return addIntervals(i1, negateInterval(i2))
 
 def mulIntervals(i1: Interval, i2: Interval) -> Interval:
     return (min(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]),
@@ -603,6 +605,10 @@ def aEval(s: LocalAbstractState,
         if e.function_name == 'CPyTagged_Negate':
             l = aEval(s, e.args[0])
             return negateInterval(l)
+        if e.function_name == 'CPyTagged_Subtract':
+            l = aEval(s, e.args[0])
+            r = aEval(s, e.args[1])
+            return subIntervals(l, r)
     return top
 
 

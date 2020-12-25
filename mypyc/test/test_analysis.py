@@ -6,7 +6,6 @@ from mypy.test.data import DataDrivenTestCase
 from mypy.test.config import test_temp_dir
 from mypy.errors import CompileError
 
-from mypyc.options import CompilerOptions
 from mypyc.common import TOP_LEVEL_NAME
 from mypyc.analysis import dataflow
 from mypyc.transform import exceptions
@@ -73,7 +72,9 @@ class TestAnalysis(MypycDataSuite):
 
                         # it must skip the print part below and do its own
                         for lab in sorted(analysis_result.keys()):
-                            for (reg, regname) in sorted(map(lambda r: (r, names[r]), filter(lambda v: isinstance(v, Register), analysis_result[lab].keys())), key=lambda x: x[1]):
+                            for (reg, regname) in sorted(map(lambda r: (r, names[r]),
+                            filter(lambda v: isinstance(v, Register),
+                            analysis_result[lab].keys())), key=lambda x: x[1]):
                                 actual.append('%-20s %-20s %s' %
                                 (lab, regname, analysis_result[lab][reg]))
                         continue

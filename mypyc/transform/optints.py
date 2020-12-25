@@ -1,20 +1,57 @@
 import functools
 
-from typing import Optional
+from typing import (
+    Optional,
+    List,
+)
 
 from mypyc.analysis.dataflow import (
     get_cfg,
     cleanup_cfg,
     analyze_integer_ranges,
-    allTop,
     joinLocalAbstractStates,
 )
 from mypyc.ir.func_ir import FuncIR
 
 
 # TODO clean this up
-from mypyc.ir.ops import *
+from mypyc.ir.ops import (
+    OpVisitor,
+    Goto,
+    Branch,
+    Return,
+    Unreachable,
+    Assign,
+    LoadInt,
+    LoadErrorValue,
+    GetAttr,
+    SetAttr,
+    LoadStatic,
+    InitStatic,
+    TupleSet,
+    TupleGet,
+    IncRef,
+    DecRef,
+    Call,
+    MethodCall,
+    Cast,
+    Box,
+    Unbox,
+    RaiseStandardError,
+    CallC,
+    Truncate,
+    LoadGlobal,
+    BinaryIntOp,
+    ComparisonOp,
+    LoadMem,
+    SetMem,
+    GetElementPtr,
+    LoadAddress,
+    Register,
+    Op,
+)
 from mypyc.ir.rtypes import (
+    RType,
     int32_rprimitive,
 )
 
@@ -89,23 +126,28 @@ class RefineTypeVisitor(OpVisitor[Optional[Op]]):
         pass
 
     def visit_unreachable(self, op: Unreachable) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_assign(self, op: Assign) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_load_int(self, op: LoadInt) -> Optional[Op]:
         if op in self.regs:
             op.value = op.value >> 1
 
     def visit_load_error_value(self, op: LoadErrorValue) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_get_attr(self, op: GetAttr) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_set_attr(self, op: SetAttr) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_load_static(self, op: LoadStatic) -> Optional[Op]:
         # TODO
@@ -160,7 +202,6 @@ class RefineTypeVisitor(OpVisitor[Optional[Op]]):
             return BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.ADD)
         else:
             return Op
-        pass # TODO
 
     def visit_truncate(self, op: Truncate) -> Optional[Op]:
         # TODO
@@ -202,34 +243,41 @@ class ReplaceVisitor(OpVisitor[None]):
         self.replaceWith = replaceWith
         super(ReplaceVisitor, self)
 
-
     def visit_goto(self, op: Goto) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_branch(self, op: Branch) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_return(self, op: Return) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_unreachable(self, op: Unreachable) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_assign(self, op: Assign) -> Optional[Op]:
         if op.src == self.toReplace:
             op.src = self.replaceWith
 
     def visit_load_int(self, op: LoadInt) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_load_error_value(self, op: LoadErrorValue) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_get_attr(self, op: GetAttr) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_set_attr(self, op: SetAttr) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_load_static(self, op: LoadStatic) -> Optional[Op]:
         # TODO
@@ -280,7 +328,8 @@ class ReplaceVisitor(OpVisitor[None]):
         pass
 
     def visit_call_c(self, op: CallC) -> Optional[Op]:
-        pass # TODO
+        # TODO
+        pass
 
     def visit_truncate(self, op: Truncate) -> Optional[Op]:
         # TODO

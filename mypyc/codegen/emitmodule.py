@@ -41,7 +41,6 @@ from mypyc.options import CompilerOptions
 from mypyc.transform.uninit import insert_uninit_checks
 from mypyc.transform.refcount import insert_ref_count_opcodes
 from mypyc.transform.exceptions import insert_exception_handling
-from mypyc.transform.optints import optimize_integer_types
 from mypyc.namegen import NameGenerator, exported_name
 from mypyc.errors import Errors
 

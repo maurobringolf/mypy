@@ -554,12 +554,15 @@ AbstractState = Dict[int, LocalAbstractState]
 def addIntervals(i1: Interval, i2: Interval) -> Interval:
     return (i1[0] + i2[0], i1[1] + i2[1])
 
+
 def subIntervals(i1: Interval, i2: Interval) -> Interval:
     return addIntervals(i1, negateInterval(i2))
+
 
 def mulIntervals(i1: Interval, i2: Interval) -> Interval:
     return (min(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]),
             max(i1[0]*i2[0], i1[0]*i2[1], i1[1]*i2[0], i1[1]*i2[1]))
+
 
 def negateInterval(i1: Interval) -> Interval:
     return (-i1[1], -i1[0])
@@ -584,39 +587,6 @@ def joinLocalAbstractStates(s1: LocalAbstractState,
 
     return sNew
 
-"""
-def aEval(s: LocalAbstractState,
-          e: Value) -> Interval:
-    if isinstance(e, LoadInt):
-        if e.type in (int_rprimitive, short_int_rprimitive):
-            return (e.value >> 1, e.value >> 1)
-        return (e.value, e.value)
-    if isinstance(e, Register):
-        return s.get(e, top)
-    if isinstance(e, CallC):
-        if e.function_name == 'CPyTagged_Add':
-            l = aEval(s, e.args[0])
-            r = aEval(s, e.args[1])
-            return addIntervals(l, r)
-        if e.function_name == 'CPyTagged_Multiply':
-            l = aEval(s, e.args[0])
-            r = aEval(s, e.args[1])
-            return mulIntervals(l, r)
-        if e.function_name == 'CPyTagged_Negate':
-            l = aEval(s, e.args[0])
-            return negateInterval(l)
-        if e.function_name == 'CPyTagged_Subtract':
-            l = aEval(s, e.args[0])
-            r = aEval(s, e.args[1])
-            return subIntervals(l, r)
-    return top
-"""
-
-
-def aExec(s: LocalAbstractState,
-          op: Op) -> LocalAbstractState:
-    return s
-
 
 def analyze_integer_ranges(blocks: List[BasicBlock],
                            cfg: CFG,
@@ -633,7 +603,6 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
         b = W.pop()
 
         # Combine all predecessor input states
-        #print(b.label, [pred.label for pred in cfg.pred[b]])
         Sb: LocalAbstractState = functools.reduce(joinLocalAbstractStates, [S[pred.label]
             for pred in cfg.pred[b]], allTop(regs))
 
@@ -656,6 +625,13 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
                     l = Sb[op.args[0]]
                     r = Sb[op.args[1]]
                     Sb[op] = mulIntervals(l, r)
+                if op.function_name == 'CPyTagged_Negate':
+                    l = Sb[op.args[0]]
+                    Sb[op] = negateInterval(l)
+                if op.function_name == 'CPyTagged_Subtract':
+                    l = Sb[op.args[0]]
+                    r = Sb[op.args[1]]
+                    Sb[op] = subIntervals(l, r)
 
         if Sb != S[b.label]:
 

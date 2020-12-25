@@ -90,8 +90,9 @@ def build_ir(modules: List[MypyFile],
         class_irs.extend(builder.classes)
 
         # Optimize integer types
-        for fn in module_ir.functions:
-            optimize_integer_types(fn)
+        if options.optimizeIntegerTypes:
+            for fn in module_ir.functions:
+                optimize_integer_types(fn)
 
     # Compute vtables.
     for cir in class_irs:

@@ -1,5 +1,7 @@
 import functools
 
+from typing import Optional
+
 from mypyc.analysis.dataflow import (
     get_cfg,
     cleanup_cfg,
@@ -14,7 +16,6 @@ from mypyc.ir.func_ir import FuncIR
 from mypyc.ir.ops import *
 from mypyc.ir.rtypes import (
     int32_rprimitive,
-    int64_rprimitive,
 )
 
 
@@ -27,149 +28,288 @@ def optimize_integer_types(ir: FuncIR) -> None:
 
     for i, block in enumerate(ir.blocks):
         block.label = i
-    to_analyze = ir.env.regs() #filter(lambda r: r.type == int_rprimitive, ir.env.regs())
 
+    initial_tops = ir.args
 
     local_ranges = analyze_integer_ranges(ir.blocks,
                                           cfg,
-                                          to_analyze)
+                                          initial_tops)
 
     # Join ranges over all blocks
     total_ranges = functools.reduce(joinLocalAbstractStates, [local_ranges[b.label]
-        for b in ir.blocks], allTop(to_analyze))
+        for b in ir.blocks])
+    new32regs = [reg for reg, (lo, hi) in total_ranges.items() if fits_int32(lo, hi)]
 
-    print(total_ranges)
+    refineIntTypes = RefineTypeVisitor(new32regs, int32_rprimitive)
+    for i, b in enumerate(ir.blocks):
+        for ii, op in enumerate(b.ops):
+            opp = op.accept(refineIntTypes)
 
-    new64regs = [reg for reg, (lo, hi) in total_ranges.items() if fits_int64(lo, hi)]
+            # These ops can be deleted
+            if False:
+                b.ops = b.ops[0:ii] + b.ops[ii+1:]
 
-    refineIntTypes = RefineTypeVisitor(new64regs, int64_rprimitive)
-    for b in ir.blocks:
-        for op in b.ops:
-            op.accept(refineIntTypes)
-    for reg in new64regs:
-        print(reg)
+            # These ops need replacement
+            if isinstance(op, CallC):
+                # Replace in block
+                ir.blocks[i].ops[ii] = opp
 
+                # Replace in the function environment
+                ir.env.indexes[opp] = ir.env.indexes[op]
+                del ir.env.indexes[op]
+
+                # Replace references other ops in same basicblock
+                replaceVisitor = ReplaceVisitor(op, opp)
+                for oppp in b.ops[i+1:]:
+                    oppp.accept(replaceVisitor)
+
+    for reg in new32regs:
         # Re-type the register in the function environment
-        reg.type = int64_rprimitive
+        reg.type = int32_rprimitive
 
 
-def fits_int64(lo: float, hi: float) -> bool:
-    return lo >= - (2**64) and hi <= 2**64 - 1
+def fits_int32(lo: float, hi: float) -> bool:
+    return lo >= - (2**32) and hi <= 2**32 - 1
 
 
-class RefineTypeVisitor(OpVisitor[None]):
+class RefineTypeVisitor(OpVisitor[Optional[Op]]):
 
     def __init__(self, regs: List[Register], toType: RType):
         self.regs = regs
         self.toType = toType
         super(RefineTypeVisitor, self)
 
-    def visit_goto(self, op: Goto) -> None:
+    def visit_goto(self, op: Goto) -> Optional[Op]:
         pass
 
-    def visit_branch(self, op: Branch) -> None:
+    def visit_branch(self, op: Branch) -> Optional[Op]:
         pass
 
-    def visit_return(self, op: Return) -> None:
+    def visit_return(self, op: Return) -> Optional[Op]:
         pass
 
-    def visit_unreachable(self, op: Unreachable) -> None:
+    def visit_unreachable(self, op: Unreachable) -> Optional[Op]:
         pass # TODO
 
-    def visit_assign(self, op: Assign) -> None:
+    def visit_assign(self, op: Assign) -> Optional[Op]:
         pass # TODO
 
-    def visit_load_int(self, op: LoadInt) -> None:
-        pass
+    def visit_load_int(self, op: LoadInt) -> Optional[Op]:
+        if op in self.regs:
+            op.value = op.value >> 1
 
-    def visit_load_error_value(self, op: LoadErrorValue) -> None:
+    def visit_load_error_value(self, op: LoadErrorValue) -> Optional[Op]:
         pass # TODO
 
-    def visit_get_attr(self, op: GetAttr) -> None:
+    def visit_get_attr(self, op: GetAttr) -> Optional[Op]:
         pass # TODO
 
-    def visit_set_attr(self, op: SetAttr) -> None:
+    def visit_set_attr(self, op: SetAttr) -> Optional[Op]:
         pass # TODO
 
-    def visit_load_static(self, op: LoadStatic) -> None:
+    def visit_load_static(self, op: LoadStatic) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_init_static(self, op: InitStatic) -> None:
+    def visit_init_static(self, op: InitStatic) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_tuple_get(self, op: TupleGet) -> None:
+    def visit_tuple_get(self, op: TupleGet) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_tuple_set(self, op: TupleSet) -> None:
+    def visit_tuple_set(self, op: TupleSet) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_inc_ref(self, op: IncRef) -> None:
+    def visit_inc_ref(self, op: IncRef) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_dec_ref(self, op: DecRef) -> None:
+    def visit_dec_ref(self, op: DecRef) -> Optional[Op]:
         # TODO need to remove this as int is no longer an object?
         pass
 
-    def visit_call(self, op: Call) -> None:
+    def visit_call(self, op: Call) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_method_call(self, op: MethodCall) -> None:
+    def visit_method_call(self, op: MethodCall) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_cast(self, op: Cast) -> None:
+    def visit_cast(self, op: Cast) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_box(self, op: Box) -> None:
+    def visit_box(self, op: Box) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_unbox(self, op: Unbox) -> None:
+    def visit_unbox(self, op: Unbox) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_raise_standard_error(self, op: RaiseStandardError) -> None:
+    def visit_raise_standard_error(self, op: RaiseStandardError) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_call_c(self, op: CallC) -> None:
+    def visit_call_c(self, op: CallC) -> Optional[Op]:
+        if op.function_name == 'CPyTagged_Add':
+            return BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.ADD)
+        else:
+            return Op
         pass # TODO
 
-    def visit_truncate(self, op: Truncate) -> None:
+    def visit_truncate(self, op: Truncate) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_load_global(self, op: LoadGlobal) -> None:
+    def visit_load_global(self, op: LoadGlobal) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_binary_int_op(self, op: BinaryIntOp) -> None:
+    def visit_binary_int_op(self, op: BinaryIntOp) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_comparison_op(self, op: ComparisonOp) -> None:
+    def visit_comparison_op(self, op: ComparisonOp) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_load_mem(self, op: LoadMem) -> None:
+    def visit_load_mem(self, op: LoadMem) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_set_mem(self, op: SetMem) -> None:
+    def visit_set_mem(self, op: SetMem) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_get_element_ptr(self, op: GetElementPtr) -> None:
+    def visit_get_element_ptr(self, op: GetElementPtr) -> Optional[Op]:
         # TODO
         pass
 
-    def visit_load_address(self, op: LoadAddress) -> None:
+    def visit_load_address(self, op: LoadAddress) -> Optional[Op]:
+        # TODO
+        pass
+
+
+class ReplaceVisitor(OpVisitor[None]):
+
+    def __init__(self, toReplace: Op, replaceWith: Op):
+        self.toReplace = toReplace
+        self.replaceWith = replaceWith
+        super(ReplaceVisitor, self)
+
+
+    def visit_goto(self, op: Goto) -> Optional[Op]:
+        pass # TODO
+
+    def visit_branch(self, op: Branch) -> Optional[Op]:
+        pass # TODO
+
+    def visit_return(self, op: Return) -> Optional[Op]:
+        pass # TODO
+
+    def visit_unreachable(self, op: Unreachable) -> Optional[Op]:
+        pass # TODO
+
+    def visit_assign(self, op: Assign) -> Optional[Op]:
+        if op.src == self.toReplace:
+            op.src = self.replaceWith
+
+    def visit_load_int(self, op: LoadInt) -> Optional[Op]:
+        pass # TODO
+
+    def visit_load_error_value(self, op: LoadErrorValue) -> Optional[Op]:
+        pass # TODO
+
+    def visit_get_attr(self, op: GetAttr) -> Optional[Op]:
+        pass # TODO
+
+    def visit_set_attr(self, op: SetAttr) -> Optional[Op]:
+        pass # TODO
+
+    def visit_load_static(self, op: LoadStatic) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_init_static(self, op: InitStatic) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_tuple_get(self, op: TupleGet) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_tuple_set(self, op: TupleSet) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_inc_ref(self, op: IncRef) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_dec_ref(self, op: DecRef) -> Optional[Op]:
+        # TODO need to remove this as int is no longer an object?
+        pass
+
+    def visit_call(self, op: Call) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_method_call(self, op: MethodCall) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_cast(self, op: Cast) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_box(self, op: Box) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_unbox(self, op: Unbox) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_raise_standard_error(self, op: RaiseStandardError) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_call_c(self, op: CallC) -> Optional[Op]:
+        pass # TODO
+
+    def visit_truncate(self, op: Truncate) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_load_global(self, op: LoadGlobal) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_binary_int_op(self, op: BinaryIntOp) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_comparison_op(self, op: ComparisonOp) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_load_mem(self, op: LoadMem) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_set_mem(self, op: SetMem) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_get_element_ptr(self, op: GetElementPtr) -> Optional[Op]:
+        # TODO
+        pass
+
+    def visit_load_address(self, op: LoadAddress) -> Optional[Op]:
         # TODO
         pass

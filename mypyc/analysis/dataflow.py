@@ -603,22 +603,7 @@ def aEval(s: LocalAbstractState,
 
 def aExec(s: LocalAbstractState,
           op: Op) -> LocalAbstractState:
-    if isinstance(op, LoadInt):
-        if op.type in (int_rprimitive, short_int_rprimitive):
-            s[op] = (op.value >> 1, op.value >> 1)
-        else:
-            s[op] = (op.value, op.value)
-    if isinstance(op, Assign):
-        s[op.dest] = s[op.src] #aEval(s, op.src)
-    if isinstance(op, CallC):
-        if op.function_name == 'CPyTagged_Add':
-            l = s[op.args[0]]
-            r = s[op.args[1]]
-            s[op] = addIntervals(l, r)
-        if op.function_name == 'CPyTagged_Multiply':
-            l = s[op.args[0]]
-            r = s[op.args[1]]
-            s[op] = mulIntervals(l, r)
+    return s
 
 
 def analyze_integer_ranges(blocks: List[BasicBlock],
@@ -632,15 +617,33 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
     # TODO: Sound widening to stop non-termination
 
     while len(W) > 0:
+
         b = W.pop()
 
         # Combine all predecessor input states
+        #print(b.label, [pred.label for pred in cfg.pred[b]])
         Sb: LocalAbstractState = functools.reduce(joinLocalAbstractStates, [S[pred.label]
             for pred in cfg.pred[b]], allTop(regs))
 
         # Abstractly execute b over Sb
         for op in b.ops:
-            Sb = aExec(Sb, op)
+            if isinstance(op, LoadInt):
+                if op.type in (int_rprimitive, short_int_rprimitive):
+                    Sb[op] = (op.value >> 1, op.value >> 1)
+                else:
+                    Sb[op] = (op.value, op.value)
+            if isinstance(op, Assign):
+                print(op.dest.name, op.src)
+                Sb[op.dest] = Sb.get(op.src, top)
+            if isinstance(op, CallC):
+                if op.function_name == 'CPyTagged_Add':
+                    l = Sb[op.args[0]]
+                    r = Sb[op.args[1]]
+                    Sb[op] = addIntervals(l, r)
+                if op.function_name == 'CPyTagged_Multiply':
+                    l = Sb[op.args[0]]
+                    r = Sb[op.args[1]]
+                    Sb[op] = mulIntervals(l, r)
 
         if Sb != S[b.label]:
 

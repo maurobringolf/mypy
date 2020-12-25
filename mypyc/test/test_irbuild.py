@@ -52,6 +52,8 @@ class TestGenOps(MypycDataSuite):
                 return
             if name.endswith('_32bit') and not IS_32_BIT_PLATFORM:
                 return
+            if name.endswith('_IntOpt'):
+                options.optimizeIntegerTypes = True
             try:
                 ir = build_ir_for_single_file(testcase.input, options)
             except CompileError as e:

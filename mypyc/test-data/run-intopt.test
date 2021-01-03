@@ -1,0 +1,32 @@
+[case run0_IntOpt]
+def f() -> int:
+	x = 3
+	return x
+[file driver.py]
+from native import f
+print(f())
+[out]
+3
+
+[case run1_IntOpt]
+def f() -> int:
+	x = 4294967296
+	y = x - 1
+	return 1
+[file driver.py]
+from native import f
+print(f())
+[out]
+1
+
+[case run2_IntOpt]
+def f() -> int:
+	x = 3
+	y = x - 1
+	return y
+[file driver.py]
+from native import f
+print(f())
+[out]
+2
+

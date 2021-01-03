@@ -77,13 +77,13 @@ def optimize_integer_types(ir: FuncIR) -> None:
         for b in ir.blocks])
     new32regs = [reg for reg, (lo, hi) in total_ranges.items() if fits_int32(lo, hi)]
 
-    """
-    for reg in new32regs:
-        # Re-type the register in the function environment
-        reg.type = int32_rprimitive
-    """
-
     refineIntTypes = RefineTypeVisitor(new32regs, int32_rprimitive)
+
+    returns = map(lambda b: b.ops[-1].reg, cfg.exits)
+    shouldRefineReturnType = all(map(lambda retval: retval in new32regs, returns))
+
+    if shouldRefineReturnType:
+        ir.decl.sig.ret_type = int32_rprimitive
 
     for b in ir.blocks:
         for i, op in enumerate(b.ops):
@@ -150,7 +150,6 @@ class RefineTypeVisitor(OpVisitor[Optional[List[Op]]]):
 
     def visit_load_int(self, op: LoadInt) -> Optional[List[Op]]:
         if op in self.regs:
-            print(op)
             op.value = op.value >> 1
             op.type = self.toType
         return None
@@ -223,7 +222,7 @@ class RefineTypeVisitor(OpVisitor[Optional[List[Op]]]):
                     return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.ADD)]
                 elif op.function_name == 'CPyTagged_Mult':
                     return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.MUL)]
-                elif op.function_name == 'CPyTagged_Sub':
+                elif op.function_name == 'CPyTagged_Subtract':
                     return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.SUB)]
                 elif op.function_name == 'CPyTagged_Negate':
                     i0 = LoadInt(0, -1, self.toType)

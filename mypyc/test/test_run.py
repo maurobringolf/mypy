@@ -37,6 +37,7 @@ files = [
     'run-bools.test',
     'run-strings.test',
     'run-tuples.test',
+    'run-intopt.test',
     'run-lists.test',
     'run-dicts.test',
     'run-sets.test',
@@ -217,7 +218,10 @@ class TestRun(MypycDataSuite):
         groups = construct_groups(sources, separate, len(module_names) > 1)
 
         try:
-            compiler_options = CompilerOptions(multi_file=self.multi_file, separate=self.separate)
+            compiler_options = CompilerOptions(multi_file=self.multi_file,
+                                               separate=self.separate,
+                                               optimizeIntegerTypes="IntOpt" in testcase.name)
+
             result = emitmodule.parse_and_typecheck(
                 sources=sources,
                 options=options,

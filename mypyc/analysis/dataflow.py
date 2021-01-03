@@ -614,7 +614,6 @@ def analyze_integer_ranges(blocks: List[BasicBlock],
                 else:
                     Sb[op] = (op.value, op.value)
             if isinstance(op, Assign):
-                print(op.dest.name, op.src)
                 Sb[op.dest] = Sb.get(op.src, top)
             if isinstance(op, CallC):
                 if op.function_name == 'CPyTagged_Add':

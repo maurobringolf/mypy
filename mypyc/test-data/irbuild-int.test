@@ -102,3 +102,26 @@ L0:
     r0 = 1 + 3
     x = r0
     return x
+
+[case test3_IntOpt]
+def f() -> int:
+	max32plus1 = 4294967296
+	max32 = 4294967295
+	min32 = -4294967296
+	min32minus1 = -4294967297
+	return 1
+[out]
+def f():
+    max32plus1 :: int
+    max32 :: int32
+    r0, min32, r1, min32minus1 :: int
+    r2 :: int32
+L0:
+    max32plus1 = 8589934592
+    max32 = 4294967295
+    r0 = CPyTagged_Negate(8589934592)
+    r2 = unbox(int32, r0)
+    min32 = r2
+    r1 = CPyTagged_Negate(8589934594)
+    min32minus1 = r1
+    return 1

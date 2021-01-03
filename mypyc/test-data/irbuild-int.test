@@ -113,15 +113,16 @@ def f() -> int:
 [out]
 def f():
     max32plus1 :: int
-    max32 :: int32
-    r0, min32, r1, min32minus1 :: int
-    r2 :: int32
+    max32, min32 :: int32
+    r0, min32minus1 :: int
+    r1 :: int32
+    r2 :: int
 L0:
     max32plus1 = 8589934592
     max32 = 4294967295
-    r0 = CPyTagged_Negate(8589934592)
-    r2 = unbox(int32, r0)
-    min32 = r2
-    r1 = CPyTagged_Negate(8589934594)
-    min32minus1 = r1
+    r2 = CPyTagged_Negate(8589934592)
+    r1 = unbox(int32, r2)
+    min32 = r1
+    r0 = CPyTagged_Negate(8589934594)
+    min32minus1 = r0
     return 1

@@ -145,10 +145,6 @@ class RefineTypeVisitor(OpVisitor[Optional[List[Op]]]):
         if op.dest in self.regs and op.src.type == self.toType:
             op.dest.type = self.toType
             return None
-        elif op.dest in self.regs and not op.src.type == self.toType:
-            unbox = Unbox(op.src, self.toType, -1)
-            return [unbox,
-                    Assign(op.dest, unbox, op.line)]
         else:
             return None
 
@@ -220,20 +216,26 @@ class RefineTypeVisitor(OpVisitor[Optional[List[Op]]]):
         pass
 
     def visit_call_c(self, op: CallC) -> Optional[List[Op]]:
-        if op in self.regs and all(map(lambda arg: arg in self.regs, op.sources())):
-            if op.function_name == 'CPyTagged_Add':
-                return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.ADD)]
-            elif op.function_name == 'CPyTagged_Mult':
-                return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.MUL)]
-            elif op.function_name == 'CPyTagged_Sub':
-                return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.SUB)]
-            elif op.function_name == 'CPyTagged_Negate':
-                i0 = LoadInt(0, -1, self.toType)
-                return [i0,
-                        BinaryIntOp(self.toType, i0, op.args[0], BinaryIntOp.SUB)
-                        ]
+        if op in self.regs:
+            if all(map(lambda arg: arg in self.regs, op.sources())):
+                # Everything is bounded so we replace the operation with its low-level equivalent
+                if op.function_name == 'CPyTagged_Add':
+                    return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.ADD)]
+                elif op.function_name == 'CPyTagged_Mult':
+                    return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.MUL)]
+                elif op.function_name == 'CPyTagged_Sub':
+                    return [BinaryIntOp(self.toType, op.args[0], op.args[1], BinaryIntOp.SUB)]
+                elif op.function_name == 'CPyTagged_Negate':
+                    i0 = LoadInt(0, -1, self.toType)
+                    return [i0,
+                            BinaryIntOp(self.toType, i0, op.args[0], BinaryIntOp.SUB)
+                            ]
+                else:
+                    return None
             else:
-                return None
+                # Bounded results with unbounded arguments case: Just unbox
+                return [op,
+                        Unbox(op, self.toType, -1)]
         else:
             return None
 
